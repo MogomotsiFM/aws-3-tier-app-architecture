@@ -1,7 +1,6 @@
 # AWS 3-tier app architecture
-The plan is to create all the resources required for a three-tier architecture. This includes a VPC, public and private subnets, 
-an Internet Gateway, security groups, application load balancer, and routing tables. We want to create all the resources using 
-AWS CloudFormation.
+The plan is to create all the resources required for a three-tier architecture using AWS CloudFormation. This includes a VPC, public and private subnets, 
+an Internet Gateway, security groups, application load balancer, and routing tables.
 ## Plan
 - Create an architecture with one public and one private subnet,
 - Make it highly available by creating public and private subnets in multiple availability zones,
