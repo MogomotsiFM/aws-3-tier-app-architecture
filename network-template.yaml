@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "AWS Cloudformation template to create network resources required for a 3-tier architecture."
+
+#Transform: AWS::LanguageExtensions
+
+Parameters:
+  VpcCidr:
+    Type: "String"
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: "Must be a valid IPv4 CIDR range of the form x.x.x.x/x."
+  NumberOfAZs:
+    Type: "String"
+    AllowedPattern: "[1-3]"
+
+# Is there a way to generate these automatically?
+Mappings:
+  NumberOfAZsMapping:
+    SubnetIDs:
+      "1":
+        - 0
+      "2": 
+        - 0
+        - 1
+      "3":
+        - 0
+        - 1
+        - 2
+
+Resources:
+  AppVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+
+  PublicSubnet0:
+    Type: AWS::EC2::Subnet
+    Properties:
+      # AvailabilityZone: !Select [Identifier !GetAZs !Ref 'AWS::Region']
+      AvailabilityZone: !Select 
+        - 0
+        - !GetAZs 'us-east-1'
+      CidrBlock:  
+        Fn::Select:
+          - 0 
+          - Fn::Cidr:  
+            - Fn::Select:
+              - 0 
+              - !Cidr [!GetAtt AppVPC.CidrBlock, 2, 9] # Split the VPC into two CIDRs
+            - !Ref NumberOfAZs
+            - 8
+      VpcId: !Ref AppVPC
+
+  PrivateSubnet0:
+    Type: AWS::EC2::Subnet
+    Properties:
+      # AvailabilityZone: !Select [Identifier !GetAZs !Ref 'AWS::Region']
+      AvailabilityZone: !Select 
+        - 0
+        - !GetAZs 'us-east-1'
+      CidrBlock:  
+        Fn::Select:
+          - 0
+          - Fn::Cidr:  
+            - Fn::Select:
+              - 1 
+              - !Cidr [!GetAtt AppVPC.CidrBlock, 2, 9] # Split the VPC into two CIDRs
+            - !Ref NumberOfAZs
+            - 8
+      VpcId: !Ref AppVPC
+
+  AlbSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      CidrIp: "0.0.0.0/0"
+      Description: "Allows public http access from the internet"
+      FromPort: 80
+      ToPort: 80
+      IpProtocol: "tcp" # Required
+      GroupId: !Ref AlbSecurityGroup
+    
+  PrivateSubnetSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: "Allows http traffic from the ALB"
+      FromPort: 80
+      ToPort: 80
+      GroupId: !Ref PrivateSubnetSecurityGroup
+      IpProtocol: "tcp" # Required
+      SourceSecurityGroupId: !Ref AlbSecurityGroup
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security Group for the Application Load Balancer" # Required
+      GroupName: "ALB_SG"
+      VpcId: !Ref AppVPC
+
+  PrivateSubnetSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allows http traffic from the ALB" # Required
+      GroupName: "Private Subnet SG"
+      VpcId: !Ref AppVPC
+
+  AppInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  
+  AppVpcGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref AppInternetGateway
+      VpcId: !Ref AppVPC # Required
+
+  AppRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref AppVPC # Required
+
+  AppRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref AppInternetGateway
+      RouteTableId: !Ref AppRouteTable # Required
+
+  # Associate the public subnet with the Route Table
+  PublicSubnetRouteAssociation0:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref AppRouteTable # Required
+      SubnetId: !Ref PublicSubnet0 # Required
+
