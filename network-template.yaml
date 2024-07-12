@@ -32,6 +32,9 @@ Resources:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCidr
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
 
   Fn::ForEach::PublicSubnets:
   - Identifier
@@ -52,6 +55,11 @@ Resources:
               - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref NumberOfAZs]
               - 8
         VpcId: !Ref AppVPC
+        Tags:
+          - Key: StackName
+            Value: !Ref AWS::StackName
+          - Key: Name
+            Value: !Sub PublicSubnet${Identifier}
 
   Fn::ForEach::PrivateSubnets:
   - Identifier
@@ -72,6 +80,11 @@ Resources:
               - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref NumberOfAZs]
               - 8
         VpcId: !Ref AppVPC
+        Tags:
+          - Key: StackName
+            Value: !Ref AWS::StackName
+          - Key: Name
+            Value: !Sub PrivateSubnet${Identifier}
 
   AlbSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -99,6 +112,11 @@ Resources:
       GroupDescription: "Security Group for the Application Load Balancer" # Required
       GroupName: "ALB_SG"
       VpcId: !Ref AppVPC
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Name
+          Value: !Sub PublicAccessSecurityGroup
 
   PrivateSubnetSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -106,9 +124,18 @@ Resources:
       GroupDescription: "Allows http traffic from the ALB" # Required
       GroupName: "Private Subnet SG"
       VpcId: !Ref AppVPC
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Name
+          Value: !Sub PrivateAccessSecurityGroup
 
   AppInternetGateway:
     Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
   
   AppVpcGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -121,6 +148,9 @@ Resources:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
 
   AppNatGateway:
     Type: AWS::EC2::NatGateway
@@ -128,11 +158,17 @@ Resources:
       AllocationId: !GetAtt NatGatewayEIP.AllocationId
       ConnectivityType: public
       SubnetId: !Ref PublicSubnet0 # Required
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
 
   AppPublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref AppVPC # Required
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
 
   AppRoute:
     Type: AWS::EC2::Route
@@ -145,6 +181,9 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref AppVPC # Required
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
 
   RouteNatGateway:
     Type: AWS::EC2::Route
