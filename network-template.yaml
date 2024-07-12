@@ -214,3 +214,34 @@ Resources:
         SubnetId: !Ref 
           Fn::Sub: 'PublicSubnet${Identifier}' # Required
 
+Outputs:
+  Fn::ForEach::ExportedPublicSubnets:
+  - Identifier
+  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
+  - 'PublicSubnets${Identifier}':
+      Value: !Ref
+        Fn::Sub: 'PublicSubnet${Identifier}'
+      Export:
+        Name: !Sub 'PublicSubnet${Identifier}'
+
+  Fn::ForEach::ExportedPrivateSubnets:
+  - Identifier
+  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
+  - 'PrivateSubnets${Identifier}':
+      Value: !Ref
+        Fn::Sub: 'PrivateSubnet${Identifier}'
+      Export: 
+        Name: !Sub 'PrivateSubnet${Identifier}'
+
+  ALBSecurityGroup:
+    Description: This security group would typically be used for an ALB
+    Value: !Ref AlbSecurityGroup
+    Export: 
+        Name: ALBSecurityGroup
+
+  PrivateAccessSecurityGroup:
+    Description: ENIs associated with this security group can only be 
+      accessed by resources associated with the exported AlbSecurityGroup
+    Value: !Ref PrivateSubnetSecurityGroup
+    Export: 
+        Name: PrivateAccessSecurityGroup
