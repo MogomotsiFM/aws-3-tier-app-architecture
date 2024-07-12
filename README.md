@@ -5,8 +5,11 @@ an Internet Gateway, security groups, application load balancer, and routing tab
 - Create an architecture with one public and one private subnet,
   - Add a NAT Gateway so that Instances in a private subnet can download the dummy application,
 - Make it highly available by creating public and private subnets in multiple availability zones,
+  -  Show that when all the resources are in one availability zone (AZ), then the architecture resembles the ones in Step 1,
+  -  Create resources in multiple AZs,
 - Integrate an auto-scaling group and, by extension, launch EC2 instances in the subnets,
 - Use the EC2 Instance user data to launch a dummy application,
+- Add data subnets which are private subnets that are used to host application Databases,
 - Stress test the dummy application to show that the architecture is functional.
 
 ## Step 1
