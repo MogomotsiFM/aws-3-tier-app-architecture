@@ -48,7 +48,8 @@ We performed the following actions in  the given order to test this new network:
   - Tagging all the resources we are creating,
   - Improve parameter names,
 - AWS CloudFormation could do with a [range intrinsic function](https://github.com/aws-cloudformation/cfn-language-discussion/issues/144) to generate arrays given the start and end values,
-- Do we need an option to create public subnets? This could be desirable if we want to provision resources for a headless, worker application that reads from an SQS queue.
+- Do we need an option to create public subnets? This could be desirable if we want to provision resources for a headless, worker application that reads from an SQS queue,
+  - Should we also include the application or service names as an input parameter to the template?
 
 ## Step 3
 - The idea is to create a template to provision application-specific resources.
