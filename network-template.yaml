@@ -111,7 +111,20 @@ Resources:
       InternetGatewayId: !Ref AppInternetGateway
       VpcId: !Ref AppVPC # Required
 
-  AppRouteTable:
+  # A NAT Gateway requires an elastic IP
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  AppNatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      ConnectivityType: public
+      SubnetId: !Ref PublicSubnet0 # Required
+
+  AppPublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref AppVPC # Required
@@ -121,12 +134,31 @@ Resources:
     Properties:
       DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref AppInternetGateway
-      RouteTableId: !Ref AppRouteTable # Required
+      RouteTableId: !Ref AppPublicRouteTable # Required
+
+  AppPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref AppVPC # Required
+
+  RouteNatGateway:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref AppNatGateway
+      RouteTableId: !Ref AppPrivateRouteTable # Required
 
   # Associate the public subnet with the Route Table
   PublicSubnetRouteAssociation0:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref AppRouteTable # Required
+      RouteTableId: !Ref AppPublicRouteTable # Required
       SubnetId: !Ref PublicSubnet0 # Required
+
+  # Associate the private subnet with a Route Table
+  PrivateSubnetRouteAssociation0:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref AppPrivateRouteTable # Required
+      SubnetId: !Ref PrivateSubnet0 # Required
 
