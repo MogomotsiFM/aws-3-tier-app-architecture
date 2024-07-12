@@ -13,3 +13,9 @@ an Internet Gateway, security groups, application load balancer, and routing tab
 ![Screenshot 2024-07-12 000740](https://github.com/user-attachments/assets/6df62c8e-872c-42d9-92de-979e520e962b)
 ## Step 1.1
 ![Screenshot 2024-07-12 020412](https://github.com/user-attachments/assets/9a9c8136-e8b2-4b2d-8177-7c196a961c1a)
+In this configuration, we can perform the following actions in order:
+- Launch an instance in the private subnet,
+- Associate it with an Instance profile role,
+- Attach the AmazonSSMManagedInstanceCore managed policy to the role,
+- Use SSM Session Manager to tunnel into the instance,
+- Ping, for example, www.google.com.
