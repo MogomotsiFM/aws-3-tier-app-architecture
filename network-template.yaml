@@ -13,6 +13,12 @@ Parameters:
     Type: String
     AllowedPattern: "[1-3]"
     Default: 1
+  InternetFacing:
+    Type: String
+    AllowedValues:
+      - Yes
+      - No
+    Default: Yes
     
 # Is there a way to generate these automatically?
 Mappings:
@@ -26,6 +32,9 @@ Mappings:
       "1": 1
       "2": 2
       "3": 3
+
+Conditions:
+  IsInternetFacing: !Equals [ !Ref InternetFacing, Yes ]
 
 Resources:
   AppVPC:
@@ -41,6 +50,7 @@ Resources:
   - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
   - 'PublicSubnet${Identifier}':
       Type: AWS::EC2::Subnet
+      Condition: IsInternetFacing
       Properties:
         AvailabilityZone: !Select 
           - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier]
@@ -88,6 +98,7 @@ Resources:
 
   AlbSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
+    Condition: IsInternetFacing
     Properties:
       CidrIp: "0.0.0.0/0"
       Description: "Allows public http access from the internet"
@@ -108,6 +119,7 @@ Resources:
 
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    Condition: IsInternetFacing
     Properties:
       GroupDescription: "Security Group for the Application Load Balancer" # Required
       GroupName: "ALB_SG"
@@ -209,6 +221,7 @@ Resources:
   - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
   - 'PublicSubnetRouteAssociation${Identifier}':
       Type: AWS::EC2::SubnetRouteTableAssociation
+      Condition: IsInternetFacing
       Properties:
         RouteTableId: !Ref AppPublicRouteTable # Required
         SubnetId: !Ref 
@@ -228,6 +241,7 @@ Outputs:
   - Identifier
   - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
   - 'PrivateSubnets${Identifier}':
+      Condition: IsInternetFacing
       Value: !Ref
         Fn::Sub: 'PrivateSubnet${Identifier}'
       Export: 
@@ -236,6 +250,7 @@ Outputs:
   ALBSecurityGroup:
     Description: This security group would typically be used for an ALB
     Value: !Ref AlbSecurityGroup
+    Condition: IsInternetFacing
     Export: 
         Name: ALBSecurityGroup
 
