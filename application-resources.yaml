@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "AWS Cloudformation template to create network resources required for a 3-tier architecture."
+
+Transform: AWS::LanguageExtensions
+
+Parameters:
+  VpcCidr:
+    Type: "String"
+    Default: 10.0.0.0/20
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: "Must be a valid IPv4 CIDR range of the form x.x.x.x/x."
+  NumberOfAZs:
+    Type: String
+    AllowedPattern: "[2-3]"
+    Default: 2 # This is because the ALB needs subnets in at least 2 AZs
+  ServiceName:
+    Type: String
+    Default: testing
+
+Resources:
+  NetworkResources:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        VpcCidr: !Ref VpcCidr
+        NumberOfAZs: !Ref NumberOfAZs
+      Tags: 
+        - Key: Service
+          Value: !Ref ServiceName
+      TemplateURL: 
+        https://portfolio-cloudformation-templates.s3.amazonaws.com/network-template.yaml
+
