@@ -59,6 +59,7 @@ We performed the following actions in  the given order to test this new network:
   -  Application Load Balancer,
   -  HTTP Listener,
   -  Target Group,
+  -  Launch Template,
   -  AutoScaling Group,
   -  AutoScaling Policy,
   -  CloudWatch Alarms.
