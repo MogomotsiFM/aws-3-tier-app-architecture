@@ -66,3 +66,33 @@ Resources:
         - Key: Application
           Value: !Ref ServiceName
       Type: application
+
+  ServiceAlbListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions: # Required
+        - TargetGroupArn: !Ref ServiceTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref ServiceALB # Required
+      Port: 80
+      Protocol: HTTP
+      
+  ServiceTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckPort: 80
+      HealthCheckProtocol: HTTP
+      Name: !Sub '${ServiceName}-TargetGroup'
+      Port: 80
+      Protocol: HTTP
+      Tags: 
+        - Key: Service
+          Value: !Ref ServiceName
+      TargetType: instance
+      Targets: 
+        - Id: i-067ea5e18f0114f18
+          Port: 80
+        - Id: i-083a95ad3c77ebca9
+          Port: 80
+      VpcId: !GetAtt NetworkResources.Outputs.AppVpcId
