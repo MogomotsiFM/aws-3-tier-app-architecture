@@ -216,7 +216,7 @@ Resources:
 
 Outputs:
   AppVpcId:
-    Value: !Ref AppVpc
+    Value: !Ref AppVPC
     Export:
       Name: AppVpc
 
