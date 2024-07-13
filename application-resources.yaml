@@ -17,6 +17,12 @@ Parameters:
     Type: String
     Default: testing
 
+Mappings:
+  NumberOfAZsToSubnetIdsMapper:
+    SubnetIds:
+      '2': ["0", "1"]
+      '3': ["0", "1", "2"] 
+
 Resources:
   NetworkResources:
     Type: AWS::CloudFormation::Stack
@@ -30,3 +36,33 @@ Resources:
       TemplateURL: 
         https://portfolio-cloudformation-templates.s3.amazonaws.com/network-template.yaml
 
+  #GenerateSequenceStack:
+  #  Type: AWS::CloudFormation::Stack
+  #  Properties:
+  #    Tags: 
+  #      - Key: Service
+  #        Value: !Ref ServiceName
+  #    TemplateURL:
+  #      https://portfolio-cloudformation-templates.s3.amazonaws.com/generate-sequence-macro.yaml
+
+  ServiceALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4
+      Name: !Sub '${ServiceName}ALB'
+      SecurityGroups: 
+        - !GetAtt NetworkResources.Outputs.ALBSecurityGroup
+      Subnets: 
+        Fn::Transform:
+          Name: GenerateSequence
+          Parameters:
+            identifier: Identifier
+            start: 0
+            stop: !Ref NumberOfAZs
+        Fn::GetAtt:
+          - NetworkResources
+          - !Sub 'Outputs.PublicSubnets${Identifier}'
+      Tags: 
+        - Key: Application
+          Value: !Ref ServiceName
+      Type: application
