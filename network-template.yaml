@@ -215,6 +215,11 @@ Resources:
           Fn::Sub: 'PublicSubnet${Identifier}' # Required
 
 Outputs:
+  AppVpcId:
+    Value: !Ref AppVpc
+    Export:
+      Name: AppVpc
+
   Fn::ForEach::ExportedPublicSubnets:
   - Identifier
   - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
