@@ -51,8 +51,8 @@ We performed the following actions in  the given order to test this new network:
   - Tagging all the resources we are creating,
   - Improve parameter names,
 - AWS CloudFormation could do with a [range intrinsic function](https://github.com/aws-cloudformation/cfn-language-discussion/issues/144) to generate arrays given the start and end values,
-- Do we need an option to create public subnets? This could be desirable if we want to provision resources for a headless, worker application that reads from an SQS queue,
-  - Should we also include the application or service names as an input parameter to the template?
+- Should creating public subnets be optional? This could be desirable if we want to provision resources for a headless, worker application that reads from an SQS queue,
+  - Should we also include the application or service names as an input parameter to the networking template?
 
 ## Step 3
 - The idea is to create a template to provision application-specific resources. In this case, the following resources will be included:
@@ -63,3 +63,16 @@ We performed the following actions in  the given order to test this new network:
   -  AutoScaling Group,
   -  AutoScaling Policy,
   -  CloudWatch Alarms.
+
+### Step 3.0
+When integrating the load balancer, we had to specify at least two public subnets created by the networking stack. We did not want to list them manually because the template 
+would start looking like C++ libraries before variadic templates. In the end, we wrote a CloudFormation 
+[macro](https://github.com/MogomotsiFM/aws-3-tier-app-architecture/blob/main/generate_sequence_macro.yaml) 
+that takes a range of numbers and a template snippet and maps it into an array of snippets. 
+
+### Step 3.1
+We have now integrated every target resource but the autoscaling policy and alarms. We installed the httpd server using EC2 instance user data. The following is the resource map from the load balancer console:
+![Screenshot 2024-07-14 032429](https://github.com/user-attachments/assets/09455a3b-50f7-47af-8575-22c620c1c03b)
+
+### Step 3.2
+Integrating autoscaling policy and alarms.
