@@ -151,3 +151,14 @@ Resources:
         PredefinedMetricSpecification:
           PredefinedMetricType: ASGAverageCPUUtilization
         TargetValue: 60
+
+
+Outputs:
+  ServiceAlbDNSName:
+    Description: 'The DNS name of application load balancer of the service'
+    Value: !Join
+        - ''
+        - - 'http://'
+          - Fn::GetAtt: ServiceALB.DNSName
+    Export:
+      Name: !Sub '${ServiceName}-ALB-DNSName'
