@@ -116,7 +116,7 @@ Resources:
             echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
       LaunchTemplateName: !Sub '${ServiceName}-LaunchTemplate'
 
-  ServiceAutoScalingGroup:
+  ServiceASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       AutoScalingGroupName: !Sub '${ServiceName}-ASG'
@@ -141,3 +141,13 @@ Resources:
           - NetworkResources
           - !Sub 'Outputs.PrivateSubnets${Identifier}'
     
+  ServiceASGPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref ServiceASG # Required
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        DisableScaleIn: false
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 60
