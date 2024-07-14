@@ -17,11 +17,6 @@ Parameters:
     Type: String
     Default: testing
 
-Mappings:
-  NumberOfAZsToSubnetIdsMapper:
-    SubnetIds:
-      '2': ["0", "1"]
-      '3': ["0", "1", "2"] 
 
 Resources:
   NetworkResources:
@@ -35,15 +30,6 @@ Resources:
           Value: !Ref ServiceName
       TemplateURL: 
         https://portfolio-cloudformation-templates.s3.amazonaws.com/network-template.yaml
-
-  #GenerateSequenceStack:
-  #  Type: AWS::CloudFormation::Stack
-  #  Properties:
-  #    Tags: 
-  #      - Key: Service
-  #        Value: !Ref ServiceName
-  #    TemplateURL:
-  #      https://portfolio-cloudformation-templates.s3.amazonaws.com/generate-sequence-macro.yaml
 
   ServiceALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
