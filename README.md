@@ -71,7 +71,8 @@ would start looking like C++ libraries before variadic templates. In the end, we
 that takes a range of numbers and a template snippet and maps it into an array of snippets. 
 
 ### Step 3.1
-We have now integrated every target resource but the autoscaling policy and alarms. We installed the httpd server using EC2 instance user data. The following is the resource map from the load balancer console:
+We have now integrated every target resource but the autoscaling policy and alarms. We installed the httpd server using EC2 instance user data. The server replies with the hostname of 
+an EC2 instance. This allowed us to show that the network is fully functional and the load balancer distributes the requests between the instances. The following is the resource map from the load balancer console:
 ![Screenshot 2024-07-14 032429](https://github.com/user-attachments/assets/09455a3b-50f7-47af-8575-22c620c1c03b)
 
 ### Step 3.2
