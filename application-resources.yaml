@@ -90,9 +90,55 @@ Resources:
         - Key: Service
           Value: !Ref ServiceName
       TargetType: instance
-      Targets: 
-        - Id: i-067ea5e18f0114f18
-          Port: 80
-        - Id: i-083a95ad3c77ebca9
-          Port: 80
       VpcId: !GetAtt NetworkResources.Outputs.AppVpcId
+
+  ServiceLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        #IamInstanceProfile:
+        #  Arn: "String"
+        #  Name: "String"
+        ImageId: 'ami-0b72821e2f351e396'
+        InstanceType: t2.micro
+        SecurityGroupIds:
+          - !GetAtt NetworkResources.Outputs.PrivateAccessSecurityGroup
+        UserData: 
+          Fn::Base64: 
+            Fn::Sub: |
+              #!/bin/bash
+              # Use this for your user data (script from top to bottom)
+              # install httpd (Linux 2 version)
+              yum update -y
+              yum install -y httpd
+              
+              systemctl start httpd
+              systemctl enable httpd
+              echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
+      LaunchTemplateName: !Sub '${ServiceName}-LaunchTemplate'
+
+  ServiceAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub '${ServiceName}-ASG'
+      DefaultInstanceWarmup: 0
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 5
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ServiceLaunchTemplate
+        Version: !GetAtt ServiceLaunchTemplate.LatestVersionNumber
+      MaxSize: 6 # Required
+      MinSize: 1 # Required
+      TargetGroupARNs: 
+        - !Ref ServiceTargetGroup
+      VPCZoneIdentifier: 
+        Fn::Transform:
+          Name: GenerateSequence
+          Parameters:
+            identifier: Identifier
+            start: 0
+            stop: !Ref NumberOfAZs
+        Fn::GetAtt:
+          - NetworkResources
+          - !Sub 'Outputs.PrivateSubnets${Identifier}'
+    
