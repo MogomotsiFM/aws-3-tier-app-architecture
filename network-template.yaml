@@ -10,22 +10,24 @@ Parameters:
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: "Must be a valid IPv4 CIDR range of the form x.x.x.x/x."
   NumberOfAZs:
-    Type: String
-    AllowedPattern: "[1-3]"
+    Type: Number
+    #AllowedPattern: "[1-3]"
+    MinValue: 1
+    MaxValue: 3
     Default: 1
-    
-# Is there a way to generate these automatically?
+
 Mappings:
-  NumberOfAZsMapping:
-    SubnetIDs:
-      "1": ["0"]
-      "2": ["0", "1"]
-      "3": ["0", "1", "2"]
-    ActualNumbers:
-      "0": 0
-      "1": 1
-      "2": 2
-      "3": 3
+  SubnetTypeToIdxMapper:
+    A:
+      "Public": "0"
+      "Private": "1"
+
+
+    #- Fn::Transform:
+    #    Name: GenerateSequence
+    #    Parameters:
+    #      stop: !Ref NumberOfAZs
+
 
 Resources:
   AppVPC:
@@ -36,55 +38,41 @@ Resources:
         - Key: StackName
           Value: !Ref AWS::StackName
 
-  Fn::ForEach::PublicSubnets:
-  - Identifier
-  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
-  - 'PublicSubnet${Identifier}':
-      Type: AWS::EC2::Subnet
+  'Fn::ForEach::SubnetTypes':
+  - SubnetType
+  - [Public, Private]
+  - 'App${SubnetType}RouteTable':
+      Type: AWS::EC2::RouteTable
       Properties:
-        AvailabilityZone: !Select 
-          - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier]
-          - !GetAZs 'us-east-1'
-        CidrBlock:  
-          Fn::Select:
-            - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier] 
-            - Fn::Cidr:  
-              - Fn::Select:
-                - 0 
-                - !Cidr [!GetAtt AppVPC.CidrBlock, 2, 10] # Split the VPC into two CIDRs
-              - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref NumberOfAZs]
-              - 8
-        VpcId: !Ref AppVPC
+        VpcId: !Ref AppVPC # Required
         Tags:
           - Key: StackName
             Value: !Ref AWS::StackName
-          - Key: Name
-            Value: !Sub PublicSubnet${Identifier}
-
-  Fn::ForEach::PrivateSubnets:
-  - Identifier
-  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
-  - 'PrivateSubnet${Identifier}':
-      Type: AWS::EC2::Subnet
-      Properties:
-        AvailabilityZone: !Select 
-          - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier]
-          - !GetAZs 'us-east-1'
-        CidrBlock:  
-          Fn::Select:
-            - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier]
-            - Fn::Cidr:  
-              - Fn::Select:
-                - 1 
-                - !Cidr [!GetAtt AppVPC.CidrBlock, 2, 10] # Split the VPC into two CIDRs
-              - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref NumberOfAZs]
-              - 8
-        VpcId: !Ref AppVPC
-        Tags:
-          - Key: StackName
-            Value: !Ref AWS::StackName
-          - Key: Name
-            Value: !Sub PrivateSubnet${Identifier}
+    'Fn::ForEach::SubnetId':
+    - SubnetIdx
+    - ["0", "1"] #, "1", "2"]
+    - '${SubnetType}Subnet${SubnetIdx}':
+        Type: AWS::EC2::Subnet
+        Properties:
+          AvailabilityZone: !Select 
+            - !Ref SubnetIdx
+            - !GetAZs 'us-east-1'
+          CidrBlock:  
+            Fn::Select:
+              - !Ref SubnetIdx
+              - Fn::Cidr:  
+                - Fn::Select:
+                  - !FindInMap [SubnetTypeToIdxMapper, A, !Ref SubnetType]  
+                  - !Cidr [!GetAtt AppVPC.CidrBlock, 2, 10] # Split the VPC into two CIDRs
+                - !Ref NumberOfAZs
+                - 8
+          VpcId: !Ref AppVPC
+          Tags:
+            - Key: StackName
+              Value: !Ref AWS::StackName
+            - Key: Name
+              Value: 
+                Fn::Sub: '${SubnetType}Subnet${SubnetIdx}'
 
   AlbSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -95,7 +83,7 @@ Resources:
       ToPort: 80
       IpProtocol: "tcp" # Required
       GroupId: !Ref AlbSecurityGroup
-    
+      
   PrivateSubnetSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -162,13 +150,13 @@ Resources:
         - Key: StackName
           Value: !Ref AWS::StackName
 
-  AppPublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref AppVPC # Required
-      Tags:
-        - Key: StackName
-          Value: !Ref AWS::StackName
+#  AppPublicRouteTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId: !Ref AppVPC # Required
+#      Tags:
+#        - Key: StackName
+#          Value: !Ref AWS::StackName
 
   AppRoute:
     Type: AWS::EC2::Route
@@ -177,13 +165,13 @@ Resources:
       GatewayId: !Ref AppInternetGateway
       RouteTableId: !Ref AppPublicRouteTable # Required
 
-  AppPrivateRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref AppVPC # Required
-      Tags:
-        - Key: StackName
-          Value: !Ref AWS::StackName
+  #AppPrivateRouteTable:
+  #  Type: AWS::EC2::RouteTable
+  #  Properties:
+  #    VpcId: !Ref AppVPC # Required
+  #    Tags:
+  #      - Key: StackName
+  #        Value: !Ref AWS::StackName
 
   RouteNatGateway:
     Type: AWS::EC2::Route
@@ -192,27 +180,6 @@ Resources:
       NatGatewayId: !Ref AppNatGateway
       RouteTableId: !Ref AppPrivateRouteTable # Required
 
-  # Associate the private subnet with their Route Table
-  'Fn::ForEach::PrivateSubnetRouteAssociation':
-  - Identifier
-  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
-  - 'PrivateSubnetRouteAssociation${Identifier}':
-      Type: AWS::EC2::SubnetRouteTableAssociation
-      Properties:
-        RouteTableId: !Ref AppPrivateRouteTable # Required
-        SubnetId: !Ref 
-          Fn::Sub: 'PrivateSubnet${Identifier}' # Required
-
-  # Associate the public subnet with their Route Table
-  'Fn::ForEach::PublicSubnetRouteAssociation':
-  - Identifier
-  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
-  - 'PublicSubnetRouteAssociation${Identifier}':
-      Type: AWS::EC2::SubnetRouteTableAssociation
-      Properties:
-        RouteTableId: !Ref AppPublicRouteTable # Required
-        SubnetId: !Ref 
-          Fn::Sub: 'PublicSubnet${Identifier}' # Required
 
 Outputs:
   AppVpcId:
@@ -220,23 +187,22 @@ Outputs:
     Export:
       Name: AppVpc
 
-  Fn::ForEach::ExportedPublicSubnets:
-  - Identifier
-  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
-  - 'PublicSubnets${Identifier}':
-      Value: !Ref
-        Fn::Sub: 'PublicSubnet${Identifier}'
-      Export:
-        Name: !Sub 'PublicSubnet${Identifier}'
-
-  Fn::ForEach::ExportedPrivateSubnets:
-  - Identifier
-  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
-  - 'PrivateSubnets${Identifier}':
-      Value: !Ref
-        Fn::Sub: 'PrivateSubnet${Identifier}'
-      Export: 
-        Name: !Sub 'PrivateSubnet${Identifier}'
+#  Fn::Transform:
+#    Name: GenerateSequence
+#    Parameters:
+#      identifier: Identifier
+#      start: 0  # Optional
+#      stop: !Ref NumberOfAZs
+#  PrivateSubnet${Identifier}:
+#    Value: !Ref
+#      Fn::Sub: 'PrivateSubnet${Identifier}'
+#    Export: 
+#      Name: !Sub 'PrivateSubnet${Identifier}'    
+#  PublicSubnet${Identifier}:
+#    Value: !Ref
+#      Fn::Sub: 'PublicSubnet${Identifier}'
+#    Export:
+#      Name: !Sub 'PublicSubnet${Identifier}'
 
   ALBSecurityGroup:
     Description: This security group would typically be used for an ALB

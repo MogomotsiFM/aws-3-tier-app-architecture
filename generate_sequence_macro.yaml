@@ -47,7 +47,11 @@ Resources:
 
                           fragment = []
                           for i in range(start, stop):
+                              # The identifier is part of a string so there are dermacation markers for readability
                               output_frag = input_fragment.replace('${' + identifier + '}', str(i) )
+                              # The identifier is standing on its own and dermacation is optional.
+                              output_frag = output_frag.replace(identifier, str(i))
+
                               print("Debug: ", output_frag)
                               
                               fragment.append( json.loads(output_frag) )
