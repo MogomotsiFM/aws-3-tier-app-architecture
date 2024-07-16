@@ -76,4 +76,7 @@ an EC2 instance. This allowed us to show that the network is fully functional an
 ![Screenshot 2024-07-14 032429](https://github.com/user-attachments/assets/09455a3b-50f7-47af-8575-22c620c1c03b)
 
 ### Step 3.2
-Integrating autoscaling policy and alarms.
+We have integrated the average CPU utilization target tracking AutoScaling policy. This policy automatically creates CloudWatch alarms for us. Using the EC2 Instance user-data script, we have installed and started a 
+tool to stress the CPU of an instance. This shows that the number of instances scales in response to the average CPU utilization. The following figure shows autoscaling in action:
+![Screenshot 2024-07-16 142009](https://github.com/user-attachments/assets/662deaab-a5cd-4e4f-9c6c-44c16a6075b2)
+
