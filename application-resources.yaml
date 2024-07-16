@@ -96,10 +96,16 @@ Resources:
             # install httpd (Linux 2 version)
             yum update -y
             yum install -y httpd
-              
+
+            #amazon-linux-extras install epel -y
+            yum install stress -y
+            
             systemctl start httpd
             systemctl enable httpd
             echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
+
+            #Run stress for 10mins
+            stress --cpu 1 --timeout 600
       LaunchTemplateName: !Sub '${ServiceName}-LaunchTemplate'
 
   ServiceASG:
@@ -113,7 +119,7 @@ Resources:
         LaunchTemplateId: !Ref ServiceLaunchTemplate
         Version: !GetAtt ServiceLaunchTemplate.LatestVersionNumber
       MaxSize: 6 # Required
-      MinSize: 1 # Required
+      MinSize: 2 # Required
       TargetGroupARNs: 
         - !Ref ServiceTargetGroup
       VPCZoneIdentifier: 
@@ -136,7 +142,7 @@ Resources:
         DisableScaleIn: false
         PredefinedMetricSpecification:
           PredefinedMetricType: ASGAverageCPUUtilization
-        TargetValue: 60
+        TargetValue: 45
 
 
 Outputs:
