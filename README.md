@@ -62,7 +62,7 @@ We performed the following actions in  the given order to test this new network:
   -  Launch Template,
   -  AutoScaling Group,
   -  AutoScaling Policy,
-  -  CloudWatch Alarms.
+  -  ~~CloudWatch Alarms~~.
 
 ### Step 3.0
 When integrating the load balancer, we had to specify at least two public subnets created by the networking stack. We did not want to list them manually because the template 
@@ -81,15 +81,30 @@ tool to stress the CPU of an instance. This shows that the number of instances s
 ![Screenshot 2024-07-16 142009](https://github.com/user-attachments/assets/662deaab-a5cd-4e4f-9c6c-44c16a6075b2)
 
 ## Step 4
-At this point, we want to test the architecture from the internet. As seen in the golden_ami.sh script, we created the "golden AMI" by:
+At this point, we want to test the architecture from the internet. As seen in the ***golden_ami.sh*** script, we created the "golden AMI" by:
 - Launching an EC2 instance with an Amazon Linux 2 AMI,
 - Installing Python and Pip,
 - Installing FastAPI and Gunicorn,
 - Copying our dummy application into the EC2 instance,
 - Then creating a custom AMI from this instance.
 
-We tested the API using Postman. The following figure shows the average CPU utilization per EC2 instance.
+Then we tested the API using Postman. Postman makes it easy to specify the number of requests and the delay between them. You could also set the number of 
+virtual users and model numerous traffic patterns. The following figure shows the average CPU utilization per EC2 instance.
 ![Screenshot 2024-07-17 154732](https://github.com/user-attachments/assets/ec5a583f-c871-46e7-8791-8a81feb859d3)
 
 The following figures show the corresponding metrics for the target group. 
 ![Screenshot 2024-07-17 160602](https://github.com/user-attachments/assets/dc311c57-67fa-433d-a859-b7b589544c2e)
+
+ ## Possible Improvements
+ - Re-use the generate-sequence macro in the network resources template,
+ - The number of EC2 instances in the Auto Scaling Group is a bit noisy, as seen in the target group metrics. This could be solved by specifying a "cooldown" period
+   for the auto-scaling policy. We could also use two simple scaling policies instead of the target tracking policy. This would allow us to specify when to scale in the fleet.
+- Allocating a much smaller public subnet compared to the private one,
+- Make the creation of public subnets optional which is ideal for worker environments,
+- Create the EC2 instance profile and associate its role with the **AmazonSSMManagedInstanceCore** managed policy. This is required if we ever need to SSH
+  into one of the servers without open port 22. 
+
+## Conclusion
+We used AWS CloudFormation to provision all the resources required for a three-tier architecture. We also "deployed" a dummy application on our servers using a custom AMI. 
+The architecture was tested using Postman making it effortless to define virtual users and traffic patterns. The test traffic showed that the network foundation is 
+functional and that the number of EC2 instances scales in response to the number of requests. We have also proposed various improvements to the architecture.
