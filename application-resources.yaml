@@ -26,6 +26,12 @@ Parameters:
     Default: 8000 # FastAPI Python server listens on this port
     MinValue: 1
     MaxValue: 65535
+  NetworkResourcesTemplate:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: > 
+      The nested network resources template is stored in an S3 bucket. 
+      The template URL is stored in SSM Parameter Store
+    Default: /three-tier-arch/network-resources-template
 
 
 Resources:
@@ -40,8 +46,7 @@ Resources:
       Tags: 
         - Key: Service
           Value: !Ref ServiceName
-      TemplateURL: 
-        https://portfolio-cloudformation-templates.s3.amazonaws.com/network-template.yaml
+      TemplateURL: !Ref NetworkResourcesTemplate
 
   ServiceALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
