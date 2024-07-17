@@ -97,8 +97,11 @@ The following figures show the corresponding metrics for the target group.
 
  ## Possible Improvements
  - Re-use the generate-sequence macro in the network resources template,
- - The number of EC2 instances in the Auto Scaling Group is a bit noisy, as seen in the target group metrics. This could be solved by specifying a "cooldown" period
-   for the auto-scaling policy. We could also use two simple scaling policies instead of the target tracking policy. This would allow us to specify when to scale in the fleet,
+ - The number of EC2 instances in the Auto Scaling Group is a bit noisy, as seen in the target group metrics. The following
+   are possible solutions for this:
+   -  Specify a non-zero for **DefaultInstanceWarmup** in the auto-scaling group,
+   -  Use two simple scaling policies instead of the target tracking policy. This would allow us to specify when to scale in the fleet,
+   -  Use EC2 instances lifecycle hooks which are also part of the auto-scaling group resource,
 - Allocating a much smaller public subnet compared to the private one,
 - Make the creation of public subnets optional which is ideal for worker environments,
 - Create the EC2 instance profile and associate its role with the **AmazonSSMManagedInstanceCore** managed policy. This is required if we ever need to SSH
