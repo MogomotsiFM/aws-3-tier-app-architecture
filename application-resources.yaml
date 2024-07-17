@@ -16,6 +16,16 @@ Parameters:
   ServiceName:
     Type: String
     Default: testing
+  ALBPort:
+    Type: Number
+    Default: 80
+    MinValue: 1
+    MaxValue: 65535
+  ServerPort:
+    Type: Number
+    Default: 8000 # FastAPI Python server listens on this port
+    MinValue: 1
+    MaxValue: 65535
 
 
 Resources:
@@ -25,6 +35,8 @@ Resources:
       Parameters:
         VpcCidr: !Ref VpcCidr
         NumberOfAZs: !Ref NumberOfAZs
+        ALBPort: !Ref ALBPort
+        ServerPort: !Ref ServerPort
       Tags: 
         - Key: Service
           Value: !Ref ServiceName
@@ -60,17 +72,18 @@ Resources:
         - TargetGroupArn: !Ref ServiceTargetGroup
           Type: forward
       LoadBalancerArn: !Ref ServiceALB # Required
-      Port: 80
+      Port: !Ref ALBPort
       Protocol: HTTP
       
   ServiceTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckEnabled: true
-      HealthCheckPort: 80
+      HealthCheckPort: !Ref ServerPort
+      HealthCheckPath: "/health"
       HealthCheckProtocol: HTTP
       Name: !Sub '${ServiceName}-TargetGroup'
-      Port: 80
+      Port: !Ref ServerPort
       Protocol: HTTP
       Tags: 
         - Key: Service
@@ -85,27 +98,16 @@ Resources:
         #IamInstanceProfile:
         #  Arn: "String"
         #  Name: "String"
-        ImageId: 'ami-0b72821e2f351e396'
+        ImageId: 'ami-07b4f405aa6249ce9' # Custom AMI with the FastAPI test app.
         InstanceType: t2.micro
         SecurityGroupIds:
           - !GetAtt NetworkResources.Outputs.PrivateAccessSecurityGroup
         UserData: 
           Fn::Base64: |
             #!/bin/bash
-            # Use this for your user data (script from top to bottom)
-            # install httpd (Linux 2 version)
-            yum update -y
-            yum install -y httpd
-
-            #amazon-linux-extras install epel -y
-            yum install stress -y
-            
-            systemctl start httpd
-            systemctl enable httpd
-            echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
-
-            #Run stress for 10mins
-            stress --cpu 1 --timeout 600
+            # Start the FastAPI Python server
+            echo "Started FastAPI server..."
+            gunicorn home.ec2-user.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind :8000 & disown #--user ec2-user
       LaunchTemplateName: !Sub '${ServiceName}-LaunchTemplate'
 
   ServiceASG:
@@ -142,7 +144,7 @@ Resources:
         DisableScaleIn: false
         PredefinedMetricSpecification:
           PredefinedMetricType: ASGAverageCPUUtilization
-        TargetValue: 45
+        TargetValue: 55
 
 
 Outputs:

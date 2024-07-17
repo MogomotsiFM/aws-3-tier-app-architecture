@@ -13,6 +13,16 @@ Parameters:
     Type: String
     AllowedPattern: "[1-3]"
     Default: 1
+  ALBPort:
+    Type: Number
+    Default: 80
+    MinValue: 1
+    MaxValue: 65000
+  ServerPort:
+    Type: Number
+    Default: 80
+    MinValue: 1
+    MaxValue: 65000
     
 # Is there a way to generate these automatically?
 Mappings:
@@ -69,8 +79,9 @@ Resources:
       Properties:
         AvailabilityZone: !Select 
           - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier]
-          - !GetAZs 'us-east-1'
-        CidrBlock:  
+          - Fn::GetAZs:
+             Ref: AWS::Region
+        CidrBlock:
           Fn::Select:
             - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier]
             - Fn::Cidr:  
@@ -91,8 +102,8 @@ Resources:
     Properties:
       CidrIp: "0.0.0.0/0"
       Description: "Allows public http access from the internet"
-      FromPort: 80
-      ToPort: 80
+      FromPort: !Ref ALBPort
+      ToPort: !Ref ALBPort
       IpProtocol: "tcp" # Required
       GroupId: !Ref AlbSecurityGroup
     
@@ -100,8 +111,8 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: "Allows http traffic from the ALB"
-      FromPort: 80
-      ToPort: 80
+      FromPort: !Ref ServerPort
+      ToPort: !Ref ServerPort
       GroupId: !Ref PrivateSubnetSecurityGroup
       IpProtocol: "tcp" # Required
       SourceSecurityGroupId: !Ref AlbSecurityGroup
