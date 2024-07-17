@@ -32,6 +32,19 @@ Parameters:
       The nested network resources template is stored in an S3 bucket. 
       The template URL is stored in SSM Parameter Store
     Default: /three-tier-arch/network-resources-template
+  AutoScalingPolicy:
+    Type: String
+    Default: cpu
+    AllowedValues: ["alb","cpu"]
+  AutoScalingTarget:
+    Type: Number
+    Default: 55
+
+
+Conditions:
+  AvgCPUUtilization: !Equals 
+    - cpu
+    - !Ref AutoScalingPolicy
 
 
 Resources:
@@ -139,7 +152,7 @@ Resources:
         Fn::GetAtt:
           - NetworkResources
           - !Sub 'Outputs.PrivateSubnets${Identifier}'
-    
+  
   ServiceASGPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
@@ -148,9 +161,19 @@ Resources:
       TargetTrackingConfiguration:
         DisableScaleIn: false
         PredefinedMetricSpecification:
-          PredefinedMetricType: ASGAverageCPUUtilization
-        TargetValue: 55
-
+          PredefinedMetricType: 
+            !If 
+              - AvgCPUUtilization
+              - ASGAverageCPUUtilization
+              - ALBRequestCountPerTarget
+          ResourceLabel: !If
+            - AvgCPUUtilization
+            - !Ref AWS::NoValue
+            - !Join
+              - '/'
+              - - !GetAtt ServiceALB.LoadBalancerFullName
+                - !GetAtt ServiceTargetGroup.TargetGroupFullName
+        TargetValue: !Ref AutoScalingTarget
 
 Outputs:
   ServiceAlbDNSName:
