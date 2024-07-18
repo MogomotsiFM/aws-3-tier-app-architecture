@@ -108,13 +108,13 @@ Resources:
       IpProtocol: "tcp" # Required
       GroupId: !Ref AlbSecurityGroup
     
-  PrivateSubnetSecurityGroupIngress:
+  PrivateAccessSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: "Allows http traffic from the ALB"
       FromPort: !Ref ServerPort
       ToPort: !Ref ServerPort
-      GroupId: !Ref PrivateSubnetSecurityGroup
+      GroupId: !Ref PrivateAccessSecurityGroup
       IpProtocol: "tcp" # Required
       SourceSecurityGroupId: !Ref AlbSecurityGroup
 
@@ -128,9 +128,9 @@ Resources:
         - Key: StackName
           Value: !Ref AWS::StackName
         - Key: Name
-          Value: !Sub PublicAccessSecurityGroup
+          Value: PublicAccessSecurityGroup
 
-  PrivateSubnetSecurityGroup:
+  PrivateAccessSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allows http traffic from the ALB" # Required
@@ -140,7 +140,7 @@ Resources:
         - Key: StackName
           Value: !Ref AWS::StackName
         - Key: Name
-          Value: !Sub PrivateAccessSecurityGroup
+          Value: PrivateAccessSecurityGroup
 
   AppInternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -259,6 +259,6 @@ Outputs:
   PrivateAccessSecurityGroup:
     Description: ENIs associated with this security group can only be 
       accessed by resources associated with the exported AlbSecurityGroup
-    Value: !Ref PrivateSubnetSecurityGroup
+    Value: !Ref PrivateAccessSecurityGroup
     Export: 
         Name: PrivateAccessSecurityGroup
