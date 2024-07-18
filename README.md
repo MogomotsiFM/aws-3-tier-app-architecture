@@ -1,6 +1,6 @@
 # AWS 3-Tier App Architecture
 The plan is to create all the resources required for a three-tier architecture using AWS CloudFormation. This includes a VPC, public and private subnets, 
-an Internet Gateway, security groups, application load balancer, and routing tables.
+an Internet Gateway, security groups, an application load balancer, and routing tables.
 ## Plan
 - Create an architecture with one public and one private subnet,
   - Add a NAT Gateway so that Instances in a private subnet can download the dummy application,
@@ -96,6 +96,7 @@ The following figures show the corresponding metrics for the target group.
 ![Screenshot 2024-07-17 160602](https://github.com/user-attachments/assets/dc311c57-67fa-433d-a859-b7b589544c2e)
 
  ## Possible Improvements
+ - Use at least two NAT Gateways,
  - Re-use the generate-sequence macro in the network resources template,
  - The number of EC2 instances in the Auto Scaling Group is a bit noisy, as seen in the target group metrics. The following
    are possible solutions for this:
@@ -104,8 +105,8 @@ The following figures show the corresponding metrics for the target group.
    -  Use EC2 instances lifecycle hooks which are also part of the auto-scaling group resource,
 - Allocating a much smaller public subnet compared to the private one,
 - Make the creation of public subnets optional which is ideal for worker environments,
-- Create the EC2 instance profile and associate its role with the **AmazonSSMManagedInstanceCore** managed policy. This is required if we ever need to SSH
-  into one of the servers without open port 22. 
+- Create the EC2 instance profile and associate its role with the **AmazonSSMManagedInstanceCore** managed policy. This is required if we ever need to tunnel
+  into one of the servers without opening port 22. 
 
 ## Conclusion
 We used AWS CloudFormation to provision all the resources required for a three-tier architecture. We also "deployed" a dummy application on our servers using a custom AMI. 
