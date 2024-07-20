@@ -28,7 +28,13 @@ Parameters:
     Default: 80
     MinValue: 1
     MaxValue: 65535
-    
+  CreateNATGateway:
+    Description: Do resources in private subnets require internet access?
+    Type: String
+    Default: "no"
+    AllowedValues: ["yes","no"]
+
+
 # Is there a way to generate these automatically?
 Mappings:
   NumberOfAZsMapping:
@@ -41,6 +47,13 @@ Mappings:
       "1": 1
       "2": 2
       "3": 3
+
+
+Conditions:
+  IsNATGatewayRequired: !Equals
+  - !Ref CreateNATGateway
+  - "yes"
+
 
 Resources:
   AppVPC:
@@ -213,6 +226,7 @@ Resources:
   # A NAT Gateway requires an elastic IP
   NatGatewayEIP:
     Type: AWS::EC2::EIP
+    Condition: IsNATGatewayRequired
     Properties:
       Domain: vpc
       Tags:
@@ -221,6 +235,7 @@ Resources:
 
   AppNatGateway:
     Type: AWS::EC2::NatGateway
+    Condition: IsNATGatewayRequired
     Properties:
       AllocationId: !GetAtt NatGatewayEIP.AllocationId
       ConnectivityType: public
@@ -254,6 +269,7 @@ Resources:
 
   RouteNatGateway:
     Type: AWS::EC2::Route
+    Condition: IsNATGatewayRequired
     Properties:
       DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref AppNatGateway

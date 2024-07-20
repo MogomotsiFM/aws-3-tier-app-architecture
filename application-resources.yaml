@@ -56,6 +56,8 @@ Resources:
         NumberOfAZs: !Ref NumberOfAZs
         ALBPort: !Ref ALBPort
         ServerPort: !Ref ServerPort
+        DatabasePort: 5432
+        CreateNATGateway: "no"
       Tags: 
         - Key: Service
           Value: !Ref ServiceName
