@@ -12,17 +12,22 @@ Parameters:
   NumberOfAZs:
     Type: String
     AllowedPattern: "[1-3]"
-    Default: 1
+    Default: 3
   ALBPort:
     Type: Number
     Default: 80
     MinValue: 1
-    MaxValue: 65000
+    MaxValue: 65535
   ServerPort:
     Type: Number
     Default: 80
     MinValue: 1
-    MaxValue: 65000
+    MaxValue: 65535
+  DatabasePort:
+    Type: Number
+    Default: 80
+    MinValue: 1
+    MaxValue: 65535
     
 # Is there a way to generate these automatically?
 Mappings:
@@ -62,9 +67,9 @@ Resources:
             - Fn::Cidr:  
               - Fn::Select:
                 - 0 
-                - !Cidr [!GetAtt AppVPC.CidrBlock, 2, 10] # Split the VPC into two CIDRs
+                - !Cidr [!GetAtt AppVPC.CidrBlock, 2, 11] # Split the VPC into two CIDRs
               - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref NumberOfAZs]
-              - 8
+              - 9
         VpcId: !Ref AppVPC
         Tags:
           - Key: StackName
@@ -86,17 +91,45 @@ Resources:
           Fn::Select:
             - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier]
             - Fn::Cidr:  
+              # Split the VPC CIDR into 5 parts: First 2 are private, next is unused, 4 is public, 5 is for data
               - Fn::Select:
-                - 1 
-                - !Cidr [!GetAtt AppVPC.CidrBlock, 2, 10] # Split the VPC into two CIDRs
+                - 3
+                - !Cidr [!GetAtt AppVPC.CidrBlock, 5, 9]
               - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref NumberOfAZs]
-              - 8
+              - 7
         VpcId: !Ref AppVPC
         Tags:
           - Key: StackName
             Value: !Ref AWS::StackName
           - Key: Name
             Value: !Sub PrivateSubnet${Identifier}
+
+  Fn::ForEach::DataSubnets:
+  - Identifier
+  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
+  - 'PrivateDataSubnet${Identifier}':
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: !Select 
+          - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier]
+          - Fn::GetAZs:
+             Ref: AWS::Region
+        CidrBlock:
+          Fn::Select:
+            - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref Identifier]
+            - Fn::Cidr:
+              # Split the VPC CIDR into 5 parts: First 2 are private, next is unused, 4 is public, 5 is for data  
+              - Fn::Select:
+                - 4
+                - !Cidr [!GetAtt AppVPC.CidrBlock, 5, 9] # Split the VPC into two CIDRs
+              - !FindInMap [NumberOfAZsMapping, ActualNumbers, !Ref NumberOfAZs]
+              - 7
+        VpcId: !Ref AppVPC
+        Tags:
+          - Key: StackName
+            Value: !Ref AWS::StackName
+          - Key: Name
+            Value: !Sub PrivateDataSubnet${Identifier}
 
   AlbSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -117,6 +150,16 @@ Resources:
       GroupId: !Ref PrivateAccessSecurityGroup
       IpProtocol: "tcp" # Required
       SourceSecurityGroupId: !Ref AlbSecurityGroup
+
+  DataAccessSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: "Allows traffic from the servers into the DB instances"
+      FromPort: !Ref DatabasePort
+      ToPort: !Ref DatabasePort
+      GroupId: !Ref DataAccessSecurityGroup
+      IpProtocol: "tcp" # Required
+      SourceSecurityGroupId: !Ref PrivateAccessSecurityGroup
 
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -141,6 +184,18 @@ Resources:
           Value: !Ref AWS::StackName
         - Key: Name
           Value: PrivateAccessSecurityGroup
+
+  DataAccessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allows traffic from the server into the DB instances" # Required
+      GroupName: "Private-Data-Subnet-SG"
+      VpcId: !Ref AppVPC
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Name
+          Value: DataAccessSecurityGroup
 
   AppInternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -215,6 +270,17 @@ Resources:
         SubnetId: !Ref 
           Fn::Sub: 'PrivateSubnet${Identifier}' # Required
 
+  # Associate the private data subnet with their Route Table
+  'Fn::ForEach::DataSubnetRouteAssociation':
+  - Identifier
+  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
+  - 'DataSubnetRouteAssociation${Identifier}':
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+        RouteTableId: !Ref AppPrivateRouteTable # Required
+        SubnetId: !Ref 
+          Fn::Sub: 'PrivateDataSubnet${Identifier}' # Required
+
   # Associate the public subnet with their Route Table
   'Fn::ForEach::PublicSubnetRouteAssociation':
   - Identifier
@@ -250,6 +316,15 @@ Outputs:
       Export: 
         Name: !Sub 'PrivateSubnet${Identifier}'
 
+  Fn::ForEach::ExportedDataSubnets:
+  - Identifier
+  - !FindInMap [NumberOfAZsMapping, SubnetIDs, !Ref NumberOfAZs]
+  - 'DataSubnets${Identifier}':
+      Value: !Ref
+        Fn::Sub: 'PrivateDataSubnet${Identifier}'
+      Export: 
+        Name: !Sub 'PrivateDataSubnet${Identifier}'
+
   ALBSecurityGroup:
     Description: This security group would typically be used for an ALB
     Value: !Ref AlbSecurityGroup
@@ -262,3 +337,10 @@ Outputs:
     Value: !Ref PrivateAccessSecurityGroup
     Export: 
         Name: PrivateAccessSecurityGroup
+
+  PrivateDataAccessSecurityGroup:
+    Description: ENIs associated with this security group can only be 
+      accessed by resources associated with the exported AlbSecurityGroup
+    Value: !Ref DataAccessSecurityGroup
+    Export: 
+        Name: PrivateDataAccessSecurityGroup
