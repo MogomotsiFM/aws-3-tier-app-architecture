@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "AWS Cloudformation template to create network resources required for a 3-tier architecture."
+Description: "AWS Cloudformation template to create resources required for a 3-tier architecture."
 
 Transform: AWS::LanguageExtensions
 
